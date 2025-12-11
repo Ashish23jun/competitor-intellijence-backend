@@ -1,12 +1,12 @@
 import { Router } from 'express';
 import { UserController } from '../controllers/user.controller';
 import { authenticate } from '../middlewares/auth.middleware';
-import { validate } from '../middlewares/validate.middleware';
+import { validateBody, validateParams, validateQuery } from '../middlewares/validate.middleware';
 import {
-  updateUserValidation,
-  userIdValidation,
-  paginationValidation,
-} from '../validators/user.validators';
+  updateUserSchema,
+  userIdParamSchema,
+  paginationQuerySchema,
+} from '../schemas/user.schemas';
 
 const router = Router();
 const userController = new UserController();
@@ -14,27 +14,20 @@ const userController = new UserController();
 // All user routes require authentication
 router.use(authenticate);
 
-router.get(
-  '/',
-  validate(paginationValidation),
-  userController.findAll.bind(userController)
-);
+router.get('/', validateQuery(paginationQuerySchema), userController.findAll.bind(userController));
 
-router.get(
-  '/:id',
-  validate(userIdValidation),
-  userController.findOne.bind(userController)
-);
+router.get('/:id', validateParams(userIdParamSchema), userController.findOne.bind(userController));
 
 router.patch(
   '/:id',
-  validate([...userIdValidation, ...updateUserValidation]),
+  validateParams(userIdParamSchema),
+  validateBody(updateUserSchema),
   userController.update.bind(userController)
 );
 
 router.delete(
   '/:id',
-  validate(userIdValidation),
+  validateParams(userIdParamSchema),
   userController.remove.bind(userController)
 );
 

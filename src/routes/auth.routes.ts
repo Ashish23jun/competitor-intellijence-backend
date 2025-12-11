@@ -1,12 +1,8 @@
 import { Router } from 'express';
 import { AuthController } from '../controllers/auth.controller';
-import { validate } from '../middlewares/validate.middleware';
+import { validateBody } from '../middlewares/validate.middleware';
 import { authenticate } from '../middlewares/auth.middleware';
-import {
-  registerValidation,
-  loginValidation,
-  refreshTokenValidation,
-} from '../validators/auth.validators';
+import { registerSchema, loginSchema, refreshTokenSchema } from '../schemas/auth.schemas';
 
 const router = Router();
 const authController = new AuthController();
@@ -14,27 +10,19 @@ const authController = new AuthController();
 // Public routes
 router.post(
   '/register',
-  validate(registerValidation),
+  validateBody(registerSchema),
   authController.register.bind(authController)
 );
 
-router.post(
-  '/login',
-  validate(loginValidation),
-  authController.login.bind(authController)
-);
+router.post('/login', validateBody(loginSchema), authController.login.bind(authController));
 
 router.post(
   '/refresh',
-  validate(refreshTokenValidation),
+  validateBody(refreshTokenSchema),
   authController.refresh.bind(authController)
 );
 
 // Protected routes
-router.get(
-  '/me',
-  authenticate,
-  authController.getProfile.bind(authController)
-);
+router.get('/me', authenticate, authController.getProfile.bind(authController));
 
 export default router;

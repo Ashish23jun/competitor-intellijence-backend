@@ -1,4 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
+import { ZodError } from 'zod';
+import { ApiErrorResponse } from '../types/response.types';
 
 export class AppError extends Error {
   statusCode: number;
@@ -14,39 +16,67 @@ export class AppError extends Error {
 }
 
 export const errorHandler = (
-  err: Error | AppError,
+  err: Error | AppError | ZodError,
   req: Request,
   res: Response,
-  next: NextFunction
+  _next: NextFunction
 ) => {
   let statusCode = 500;
   let message = 'Internal Server Error';
-  let stack = err.stack;
+  let errors: Array<{ field?: string; message: string }> | undefined;
 
-  if (err instanceof AppError) {
+  // Handle Zod validation errors
+  if (err instanceof ZodError) {
+    statusCode = 400;
+    message = 'Validation failed';
+    errors = err.errors.map((error) => ({
+      field: error.path.join('.'),
+      message: error.message,
+    }));
+  }
+  // Handle custom AppError
+  else if (err instanceof AppError) {
     statusCode = err.statusCode;
     message = err.message;
-  } else if (err.name === 'ValidationError') {
-    statusCode = 400;
-    message = err.message;
-  } else if (err.name === 'JsonWebTokenError') {
+  }
+  // Handle JWT errors
+  else if (err.name === 'JsonWebTokenError') {
     statusCode = 401;
     message = 'Invalid token';
   } else if (err.name === 'TokenExpiredError') {
     statusCode = 401;
     message = 'Token expired';
-  } else if (err.message) {
+  }
+  // Handle Prisma errors
+  else if (err.name === 'PrismaClientKnownRequestError') {
+    statusCode = 400;
+    message = 'Database operation failed';
+  } else if (err.name === 'PrismaClientValidationError') {
+    statusCode = 400;
+    message = 'Invalid data provided';
+  }
+  // Generic error
+  else if (err.message) {
     message = err.message;
   }
 
-  console.error(`[ERROR] ${req.method} ${req.path}:`, err);
+  // Log error
+  console.error(`[ERROR] ${req.method} ${req.path}:`, {
+    message: err.message,
+    stack: err.stack,
+    ...(errors && { validationErrors: errors }),
+  });
 
-  res.status(statusCode).json({
-    status: 'error',
+  // Build error response
+  const errorResponse: ApiErrorResponse = {
+    success: false,
     statusCode,
     message,
-    ...(process.env.NODE_ENV === 'development' && { stack }),
+    ...(errors && { errors }),
     timestamp: new Date().toISOString(),
     path: req.url,
-  });
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
+  };
+
+  res.status(statusCode).json(errorResponse);
 };

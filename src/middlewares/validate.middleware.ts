@@ -1,31 +1,71 @@
 import { Request, Response, NextFunction } from 'express';
-import { validationResult, ValidationChain } from 'express-validator';
-import { AppError } from './error-handler.middleware';
+import { AnyZodObject, ZodError } from 'zod';
 
-export const validate = (validations: ValidationChain[]) => {
+/**
+ * Zod Validation Middleware
+ * Validates request body, query, and params against Zod schema
+ */
+
+export const validateRequest = (schema: AnyZodObject) => {
   return async (req: Request, res: Response, next: NextFunction) => {
-    // Run all validations
-    for (const validation of validations) {
-      await validation.run(req);
-    }
-
-    // Check for errors
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      const errorMessages = errors.array().map(err => ({
-        field: err.type === 'field' ? (err as any).path : 'unknown',
-        message: err.msg,
-      }));
-
-      return res.status(400).json({
-        status: 'error',
-        statusCode: 400,
-        message: 'Validation failed',
-        errors: errorMessages,
-        timestamp: new Date().toISOString(),
+    try {
+      await schema.parseAsync({
+        body: req.body,
+        query: req.query,
+        params: req.params,
       });
+      next();
+    } catch (error) {
+      if (error instanceof ZodError) {
+        next(error); // Pass to error handler
+      } else {
+        next(error);
+      }
     }
+  };
+};
 
-    next();
+/**
+ * Validate only request body
+ */
+export const validateBody = (schema: AnyZodObject) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const validated = await schema.parseAsync(req.body);
+      req.body = validated; // Replace with validated data
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
+};
+
+/**
+ * Validate only query parameters
+ */
+export const validateQuery = (schema: AnyZodObject) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const validated = await schema.parseAsync(req.query);
+      req.query = validated as typeof req.query;
+      next();
+    } catch (error) {
+      next(error);
+    }
+  };
+};
+
+/**
+ * Validate only route parameters
+ */
+export const validateParams = (schema: AnyZodObject) => {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const validated = await schema.parseAsync(req.params);
+      req.params = validated as typeof req.params;
+      next();
+    } catch (error) {
+      next(error);
+    }
   };
 };

@@ -1,14 +1,14 @@
 import { Router } from 'express';
 import { OrganizationController } from '../controllers/organization.controller';
 import { authenticate } from '../middlewares/auth.middleware';
-import { validate } from '../middlewares/validate.middleware';
+import { validateBody, validateParams } from '../middlewares/validate.middleware';
 import {
-  createOrganizationValidation,
-  updateOrganizationValidation,
-  addMemberValidation,
-  organizationIdValidation,
-  memberIdValidation,
-} from '../validators/organization.validators';
+  createOrganizationSchema,
+  updateOrganizationSchema,
+  addMemberSchema,
+  organizationIdParamSchema,
+  removeMemberParamSchema,
+} from '../schemas/organization.schemas';
 
 const router = Router();
 const organizationController = new OrganizationController();
@@ -18,42 +18,41 @@ router.use(authenticate);
 
 router.post(
   '/',
-  validate(createOrganizationValidation),
+  validateBody(createOrganizationSchema),
   organizationController.create.bind(organizationController)
 );
 
-router.get(
-  '/',
-  organizationController.findAll.bind(organizationController)
-);
+router.get('/', organizationController.findAll.bind(organizationController));
 
 router.get(
   '/:id',
-  validate(organizationIdValidation),
+  validateParams(organizationIdParamSchema),
   organizationController.findOne.bind(organizationController)
 );
 
 router.patch(
   '/:id',
-  validate([...organizationIdValidation, ...updateOrganizationValidation]),
+  validateParams(organizationIdParamSchema),
+  validateBody(updateOrganizationSchema),
   organizationController.update.bind(organizationController)
 );
 
 router.delete(
   '/:id',
-  validate(organizationIdValidation),
+  validateParams(organizationIdParamSchema),
   organizationController.remove.bind(organizationController)
 );
 
 router.post(
   '/:id/members',
-  validate([...organizationIdValidation, ...addMemberValidation]),
+  validateParams(organizationIdParamSchema),
+  validateBody(addMemberSchema),
   organizationController.addMember.bind(organizationController)
 );
 
 router.delete(
   '/:id/members/:memberId',
-  validate([...organizationIdValidation, ...memberIdValidation]),
+  validateParams(removeMemberParamSchema),
   organizationController.removeMember.bind(organizationController)
 );
 

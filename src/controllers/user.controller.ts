@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import { UserService } from '../services/user.service';
+import { ResponseHandler } from '../utils/response/response.handler';
+import { UpdateUserInput, PaginationQuery } from '../schemas/user.schemas';
 
 const userService = new UserService();
 
@@ -28,10 +30,9 @@ export class UserController {
    *         description: List of users
    */
   async findAll(req: Request, res: Response) {
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
+    const { page, limit } = req.query as unknown as PaginationQuery;
     const result = await userService.findAll(page, limit);
-    res.status(200).json(result);
+    return ResponseHandler.paginated(res, result, 'Users retrieved successfully');
   }
 
   /**
@@ -57,7 +58,7 @@ export class UserController {
   async findOne(req: Request, res: Response) {
     const { id } = req.params;
     const result = await userService.findOne(id);
-    res.status(200).json(result);
+    return ResponseHandler.success(res, result, 'User retrieved successfully');
   }
 
   /**
@@ -90,8 +91,9 @@ export class UserController {
    */
   async update(req: Request, res: Response) {
     const { id } = req.params;
-    const result = await userService.update(id, req.body);
-    res.status(200).json(result);
+    const data = req.body as UpdateUserInput;
+    const result = await userService.update(id, data);
+    return ResponseHandler.success(res, result, 'User updated successfully');
   }
 
   /**
@@ -117,6 +119,6 @@ export class UserController {
   async remove(req: Request, res: Response) {
     const { id } = req.params;
     const result = await userService.remove(id);
-    res.status(200).json(result);
+    return ResponseHandler.successMessage(res, result.message);
   }
 }

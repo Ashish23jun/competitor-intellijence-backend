@@ -109,9 +109,7 @@ export class OrganizationService {
     }
 
     // Check if user is a member
-    const isMember = organization.members.some(
-      (member) => member.userId === userId
-    );
+    const isMember = organization.members.some((member) => member.userId === userId);
 
     if (!isMember) {
       throw new AppError('You do not have access to this organization', 403);
@@ -136,10 +134,7 @@ export class OrganizationService {
     const member = organization.members.find((m) => m.userId === userId);
 
     if (!member || !['owner', 'admin'].includes(member.role)) {
-      throw new AppError(
-        'Only owners and admins can update the organization',
-        403
-      );
+      throw new AppError('Only owners and admins can update the organization', 403);
     }
 
     const updated = await prisma.organization.update({
@@ -209,9 +204,7 @@ export class OrganizationService {
     }
 
     // Check if current user is owner or admin
-    const currentMember = organization.members.find(
-      (m) => m.userId === currentUserId
-    );
+    const currentMember = organization.members.find((m) => m.userId === currentUserId);
 
     if (!currentMember || !['owner', 'admin'].includes(currentMember.role)) {
       throw new AppError('Only owners and admins can add members', 403);
@@ -227,9 +220,7 @@ export class OrganizationService {
     }
 
     // Check if already a member
-    const existingMember = organization.members.find(
-      (m) => m.userId === user.id
-    );
+    const existingMember = organization.members.find((m) => m.userId === user.id);
 
     if (existingMember) {
       throw new AppError('User is already a member of this organization', 409);
@@ -272,9 +263,7 @@ export class OrganizationService {
     }
 
     // Check if current user is owner or admin
-    const currentMember = organization.members.find(
-      (m) => m.userId === currentUserId
-    );
+    const currentMember = organization.members.find((m) => m.userId === currentUserId);
 
     if (!currentMember || !['owner', 'admin'].includes(currentMember.role)) {
       throw new AppError('Only owners and admins can remove members', 403);
@@ -286,9 +275,7 @@ export class OrganizationService {
     }
 
     // Check if member exists
-    const memberToRemove = organization.members.find(
-      (m) => m.userId === memberId
-    );
+    const memberToRemove = organization.members.find((m) => m.userId === memberId);
 
     if (!memberToRemove) {
       throw new AppError('Member not found in this organization', 404);

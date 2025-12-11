@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import { AuthService } from '../services/auth.service';
 import { AuthRequest } from '../middlewares/auth.middleware';
+import { ResponseHandler } from '../utils/response/response.handler';
+import { RegisterInput, LoginInput, RefreshTokenInput } from '../schemas/auth.schemas';
 
 const authService = new AuthService();
 
@@ -36,9 +38,9 @@ export class AuthController {
    *         description: User already exists
    */
   async register(req: Request, res: Response) {
-    const { email, password, name } = req.body;
+    const { email, password, name } = req.body as RegisterInput;
     const result = await authService.register(email, password, name);
-    res.status(201).json(result);
+    return ResponseHandler.created(res, result, 'User registered successfully');
   }
 
   /**
@@ -70,9 +72,9 @@ export class AuthController {
    *         description: Invalid credentials
    */
   async login(req: Request, res: Response) {
-    const { email, password } = req.body;
+    const { email, password } = req.body as LoginInput;
     const result = await authService.login(email, password);
-    res.status(200).json(result);
+    return ResponseHandler.success(res, result, 'Login successful');
   }
 
   /**
@@ -99,9 +101,9 @@ export class AuthController {
    *         description: Invalid refresh token
    */
   async refresh(req: Request, res: Response) {
-    const { refreshToken } = req.body;
+    const { refreshToken } = req.body as RefreshTokenInput;
     const result = await authService.refreshToken(refreshToken);
-    res.status(200).json(result);
+    return ResponseHandler.success(res, result, 'Token refreshed successfully');
   }
 
   /**
@@ -120,6 +122,6 @@ export class AuthController {
    */
   async getProfile(req: AuthRequest, res: Response) {
     const result = await authService.getUserById(req.user!.id);
-    res.status(200).json(result);
+    return ResponseHandler.success(res, result, 'Profile retrieved successfully');
   }
 }

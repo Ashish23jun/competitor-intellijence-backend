@@ -8,7 +8,8 @@ const options = {
     info: {
       title: 'Competitor Intelligence API',
       version: '1.0.0',
-      description: 'API for monitoring competitor marketing activities including ads, websites, social media, and more',
+      description:
+        'API for monitoring competitor marketing activities including ads, websites, social media, and more',
       contact: {
         name: 'API Support',
         email: 'support@competitorintel.com',
@@ -49,11 +50,15 @@ const options = {
 const specs = swaggerJsdoc(options);
 
 export const setupSwagger = (app: Application) => {
-  app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(specs, {
-    explorer: true,
-    customCss: '.swagger-ui .topbar { display: none }',
-    customSiteTitle: 'Competitor Intelligence API Docs',
-  }));
+  app.use(
+    '/api/docs',
+    swaggerUi.serve,
+    swaggerUi.setup(specs, {
+      explorer: true,
+      customCss: '.swagger-ui .topbar { display: none }',
+      customSiteTitle: 'Competitor Intelligence API Docs',
+    })
+  );
 
   console.log('📚 Swagger documentation available at /api/docs');
 };
