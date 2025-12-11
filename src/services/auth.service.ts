@@ -1,7 +1,7 @@
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
-import prisma from '../utils/prisma';
-import { AppError } from '../middlewares/error-handler.middleware';
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import prisma from "../utils/prisma";
+import { AppError } from "../middlewares/error-handler.middleware";
 
 export class AuthService {
   async register(email: string, password: string, name?: string) {
@@ -11,7 +11,7 @@ export class AuthService {
     });
 
     if (existingUser) {
-      throw new AppError('User with this email already exists', 409);
+      throw new AppError("User with this email already exists", 409);
     }
 
     // Hash password
@@ -23,7 +23,7 @@ export class AuthService {
       data: {
         email,
         passwordHash,
-        name: name || email.split('@')[0],
+        name: name || email.split("@")[0],
       },
       select: {
         id: true,
@@ -51,14 +51,14 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new AppError('Invalid credentials', 401);
+      throw new AppError("Invalid credentials", 401);
     }
 
     // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.passwordHash!);
 
     if (!isPasswordValid) {
-      throw new AppError('Invalid credentials', 401);
+      throw new AppError("Invalid credentials", 401);
     }
 
     // Generate tokens
@@ -90,7 +90,7 @@ export class AuthService {
 
       return tokens;
     } catch (error) {
-      throw new AppError('Invalid refresh token', 401);
+      throw new AppError("Invalid refresh token", 401);
     }
   }
 
@@ -107,7 +107,7 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new AppError('User not found', 404);
+      throw new AppError("User not found", 404);
     }
 
     return user;
@@ -117,17 +117,17 @@ export class AuthService {
     const payload = { sub: userId, email };
 
     const accessToken = jwt.sign(payload, process.env.JWT_SECRET!, {
-      expiresIn: process.env.JWT_EXPIRES_IN || '15m',
+      expiresIn: process.env.JWT_EXPIRES_IN || "15m",
     });
 
     const refreshToken = jwt.sign(payload, process.env.JWT_REFRESH_SECRET!, {
-      expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
+      expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || "7d",
     });
 
     return {
       accessToken,
       refreshToken,
-      expiresIn: process.env.JWT_EXPIRES_IN || '15m',
+      expiresIn: process.env.JWT_EXPIRES_IN || "15m",
     };
   }
 }
