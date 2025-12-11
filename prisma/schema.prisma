@@ -1,0 +1,261 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  passwordHash String?  @map("password_hash")
+  name         String?
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  ownedOrganizations  Organization[]       @relation("OrganizationOwner")
+  organizationMembers OrganizationMember[]
+  auditLogs           AuditLog[]
+
+  @@map("users")
+}
+
+model Organization {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  ownerId   String?  @map("owner_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  owner        User?                @relation("OrganizationOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  members      OrganizationMember[]
+  competitors  Competitor[]
+  events       Event[]
+  subscriptions Subscription[]
+  usageCounters UsageCounter[]
+  auditLogs     AuditLog[]
+  searchIndexes SearchIndex[]
+
+  @@map("organizations")
+}
+
+model OrganizationMember {
+  orgId     String   @map("org_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  role      String   @default("viewer")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([orgId, userId])
+  @@map("organization_members")
+}
+
+model Subscription {
+  id                   String    @id @default(uuid()) @db.Uuid
+  orgId                String    @map("org_id") @db.Uuid
+  plan                 String
+  seats                Int       @default(1)
+  stripeSubscriptionId String?   @map("stripe_subscription_id")
+  active               Boolean   @default(true)
+  startedAt            DateTime  @default(now()) @map("started_at") @db.Timestamptz(6)
+  cancelledAt          DateTime? @map("cancelled_at") @db.Timestamptz(6)
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+model Competitor {
+  id           String   @id @default(uuid()) @db.Uuid
+  orgId        String   @map("org_id") @db.Uuid
+  domain       String
+  displayName  String?  @map("display_name")
+  canonicalUrl String?  @map("canonical_url")
+  meta         Json     @default("{}")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  organization  Organization   @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  monitors      Monitor[]
+  events        Event[]
+  rawSnapshots  RawSnapshot[]
+  ads           Ad[]
+  socialPosts   SocialPost[]
+  reviews       Review[]
+
+  @@index([orgId, domain])
+  @@map("competitors")
+}
+
+model Monitor {
+  id               String    @id @default(uuid()) @db.Uuid
+  competitorId     String    @map("competitor_id") @db.Uuid
+  type             String
+  config           Json      @default("{}")
+  frequencyMinutes Int       @default(1440) @map("frequency_minutes")
+  lastRun          DateTime? @map("last_run") @db.Timestamptz(6)
+  nextRun          DateTime? @map("next_run") @db.Timestamptz(6)
+  active           Boolean   @default(true)
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  competitor   Competitor    @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+  events       Event[]
+  rawSnapshots RawSnapshot[]
+
+  @@index([competitorId, type])
+  @@index([nextRun], map: "idx_monitors_next_run")
+  @@map("monitors")
+}
+
+model Event {
+  id           String    @id @default(uuid()) @db.Uuid
+  orgId        String    @map("org_id") @db.Uuid
+  competitorId String    @map("competitor_id") @db.Uuid
+  monitorId    String?   @map("monitor_id") @db.Uuid
+  type         String
+  subtype      String?
+  payload      Json      @default("{}")
+  rawId        String?   @map("raw_id") @db.Uuid
+  firstSeen    DateTime  @default(now()) @map("first_seen") @db.Timestamptz(6)
+  lastSeen     DateTime  @default(now()) @map("last_seen") @db.Timestamptz(6)
+  severity     Int       @default(1) @db.SmallInt
+  processed    Boolean   @default(false)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  competitor   Competitor   @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+  monitor      Monitor?     @relation(fields: [monitorId], references: [id], onDelete: SetNull)
+
+  @@index([orgId, competitorId, type])
+  @@index([firstSeen])
+  @@index([lastSeen])
+  @@map("events")
+}
+
+model RawSnapshot {
+  id               String   @id @default(uuid()) @db.Uuid
+  competitorId     String   @map("competitor_id") @db.Uuid
+  monitorId        String?  @map("monitor_id") @db.Uuid
+  url              String?
+  contentS3Key     String?  @map("content_s3_key")
+  screenshotS3Key  String?  @map("screenshot_s3_key")
+  domHash          String?  @map("dom_hash")
+  meta             Json     @default("{}")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  competitor Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+  monitor    Monitor?   @relation(fields: [monitorId], references: [id], onDelete: SetNull)
+
+  @@index([competitorId, createdAt(sort: Desc)])
+  @@map("raw_snapshots")
+}
+
+model Ad {
+  id             String   @id @default(uuid()) @db.Uuid
+  competitorId   String   @map("competitor_id") @db.Uuid
+  platform       String
+  externalAdId   String?  @map("external_ad_id")
+  creativeS3Key  String?  @map("creative_s3_key")
+  adCopy         String?  @map("ad_copy") @db.Text
+  landingUrl     String?  @map("landing_url")
+  firstSeen      DateTime @default(now()) @map("first_seen") @db.Timestamptz(6)
+  lastSeen       DateTime @default(now()) @map("last_seen") @db.Timestamptz(6)
+  metrics        Json     @default("{}")
+  meta           Json     @default("{}")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  competitor Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+
+  @@index([competitorId, platform])
+  @@index([firstSeen])
+  @@map("ads")
+}
+
+model SocialPost {
+  id             String    @id @default(uuid()) @db.Uuid
+  competitorId   String    @map("competitor_id") @db.Uuid
+  platform       String
+  externalPostId String?   @map("external_post_id")
+  content        String?   @db.Text
+  metrics        Json      @default("{}")
+  mediaS3Key     String?   @map("media_s3_key")
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  postedAt       DateTime? @map("posted_at") @db.Timestamptz(6)
+
+  competitor Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+
+  @@index([competitorId, platform])
+  @@index([postedAt])
+  @@map("social_posts")
+}
+
+model Review {
+  id               String    @id @default(uuid()) @db.Uuid
+  competitorId     String    @map("competitor_id") @db.Uuid
+  platform         String
+  externalReviewId String?   @map("external_review_id")
+  rating           Int?      @db.SmallInt
+  title            String?
+  body             String?   @db.Text
+  sentimentScore   Decimal?  @map("sentiment_score") @db.Decimal
+  metadata         Json      @default("{}")
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  postedAt         DateTime? @map("posted_at") @db.Timestamptz(6)
+
+  competitor Competitor @relation(fields: [competitorId], references: [id], onDelete: Cascade)
+
+  @@index([competitorId, postedAt])
+  @@map("reviews")
+}
+
+model SearchIndex {
+  id           String   @id @default(uuid()) @db.Uuid
+  orgId        String   @map("org_id") @db.Uuid
+  competitorId String?  @map("competitor_id") @db.Uuid
+  docType      String   @map("doc_type")
+  title        String?
+  body         String?  @db.Text
+  metadata     Json     @default("{}")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@map("search_index")
+}
+
+model AuditLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  userId    String?  @map("user_id") @db.Uuid
+  orgId     String?  @map("org_id") @db.Uuid
+  action    String
+  resource  Json?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user         User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  organization Organization? @relation(fields: [orgId], references: [id], onDelete: SetNull)
+
+  @@map("audit_logs")
+}
+
+model UsageCounter {
+  id          String   @id @default(uuid()) @db.Uuid
+  orgId       String   @map("org_id") @db.Uuid
+  metric      String
+  windowStart DateTime @map("window_start") @db.Timestamptz(6)
+  count       BigInt   @default(0)
+
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([orgId, metric, windowStart])
+  @@map("usage_counters")
+}
