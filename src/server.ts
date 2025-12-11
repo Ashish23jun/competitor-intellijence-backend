@@ -16,9 +16,7 @@ import { errorHandler } from './middlewares/error-handler.middleware';
 import { notFoundHandler } from './middlewares/not-found.middleware';
 
 // Import routes
-import authRoutes from './routes/auth.routes';
-import userRoutes from './routes/user.routes';
-import organizationRoutes from './routes/organization.routes';
+import { registerRoutes } from './routes';
 
 // Import Swagger
 import { setupSwagger } from './config/swagger';
@@ -85,9 +83,7 @@ app.get('/health', (req, res) => {
 
 // API routes
 const API_PREFIX = process.env.API_PREFIX || 'api/v1';
-app.use(`/${API_PREFIX}/auth`, authRoutes);
-app.use(`/${API_PREFIX}/users`, userRoutes);
-app.use(`/${API_PREFIX}/organizations`, organizationRoutes);
+registerRoutes(app, API_PREFIX);
 
 // Swagger documentation (only in development)
 if (NODE_ENV !== 'production') {
