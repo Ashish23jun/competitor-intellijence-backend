@@ -1,11 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { AnyZodObject, ZodError } from 'zod';
 
-/**
- * Zod Validation Middleware
- * Validates request body, query, and params against Zod schema
- */
-
 export const validateRequest = (schema: AnyZodObject) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -17,7 +12,7 @@ export const validateRequest = (schema: AnyZodObject) => {
       next();
     } catch (error) {
       if (error instanceof ZodError) {
-        next(error); // Pass to error handler
+        next(error);
       } else {
         next(error);
       }
@@ -25,14 +20,11 @@ export const validateRequest = (schema: AnyZodObject) => {
   };
 };
 
-/**
- * Validate only request body
- */
 export const validateBody = (schema: AnyZodObject) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
       const validated = await schema.parseAsync(req.body);
-      req.body = validated; // Replace with validated data
+      req.body = validated;
       next();
     } catch (error) {
       next(error);
@@ -40,9 +32,6 @@ export const validateBody = (schema: AnyZodObject) => {
   };
 };
 
-/**
- * Validate only query parameters
- */
 export const validateQuery = (schema: AnyZodObject) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -55,9 +44,6 @@ export const validateQuery = (schema: AnyZodObject) => {
   };
 };
 
-/**
- * Validate only route parameters
- */
 export const validateParams = (schema: AnyZodObject) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {

@@ -8,31 +8,23 @@ import rateLimit from 'express-rate-limit';
 import 'express-async-errors';
 import dotenv from 'dotenv';
 
-// Load environment variables
 dotenv.config();
 
-// Import middleware
 import { errorHandler } from './middlewares/error-handler.middleware';
 import { notFoundHandler } from './middlewares/not-found.middleware';
 
-// Import routes
 import { registerRoutes } from './routes';
 
-// Import Swagger
 import { setupSwagger } from './config/swagger';
 
-// Import database
 import prisma from './utils/prisma';
 
-// Create Express app
 const app: Application = express();
 const PORT = process.env.PORT || 3000;
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
-// Security middleware
 app.use(helmet());
 
-// CORS
 app.use(
   cors({
     origin: process.env.CORS_ORIGINS?.split(',') || [
@@ -45,7 +37,6 @@ app.use(
   })
 );
 
-// Rate limiting
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_TTL || '60', 10) * 1000,
   max: parseInt(process.env.RATE_LIMIT_MAX || '100', 10),
@@ -55,24 +46,19 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Cookie parser
 app.use(cookieParser());
 
-// Compression
 app.use(compression());
 
-// Logging
 if (NODE_ENV === 'development') {
   app.use(morgan('dev'));
 } else {
   app.use(morgan('combined'));
 }
 
-// Health check
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
@@ -81,22 +67,17 @@ app.get('/health', (req, res) => {
   });
 });
 
-// API routes
 const API_PREFIX = process.env.API_PREFIX || 'api/v1';
 registerRoutes(app, API_PREFIX);
 
-// Swagger documentation (only in development)
 if (NODE_ENV !== 'production') {
   setupSwagger(app);
 }
 
-// 404 handler
 app.use(notFoundHandler);
 
-// Global error handler (must be last)
 app.use(errorHandler);
 
-// Graceful shutdown
 process.on('SIGINT', async () => {
   console.log('\n🛑 Shutting down gracefully...');
   await prisma.$disconnect();
@@ -112,7 +93,6 @@ process.on('SIGTERM', async () => {
 // Start server
 const server = app.listen(PORT, async () => {
   try {
-    // Test database connection
     await prisma.$connect();
     console.log('✅ Database connected successfully');
 
@@ -134,7 +114,6 @@ const server = app.listen(PORT, async () => {
   }
 });
 
-// Handle unhandled promise rejections
 process.on('unhandledRejection', (err: Error) => {
   console.error('❌ Unhandled Promise Rejection:', err);
   server.close(() => process.exit(1));
