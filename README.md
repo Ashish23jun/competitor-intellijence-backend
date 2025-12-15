@@ -47,17 +47,19 @@ npm install
 
 ### 2. Environment Setup
 
-The `.env` file is already configured with Neon PostgreSQL. Update if needed:
+Create a `.env` file in the root directory based on `.env.example`:
 
 ```env
-DATABASE_URL=postgresql://neondb_owner:npg_P4iYMnDIs2va@ep-solitary-forest-a1106v36-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require
+DATABASE_URL=postgresql://username:password@your-host.neon.tech/your-database?sslmode=require
 
-JWT_SECRET=competitor-intelligence-super-secret-jwt-key-2024
-JWT_REFRESH_SECRET=competitor-intelligence-super-secret-refresh-key-2024
+JWT_SECRET=your-super-secret-jwt-key-change-this
+JWT_REFRESH_SECRET=your-super-secret-refresh-key-change-this
 
 PORT=3000
 NODE_ENV=development
 ```
+
+**IMPORTANT**: Replace the placeholder values with your actual credentials. Never commit real credentials to version control.
 
 ### 3. Database Setup
 
