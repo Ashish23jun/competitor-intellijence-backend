@@ -54,7 +54,7 @@ prisma/migrations/*
 
 # Cache
 .cache/
-
+.env
 # Build
 dist/
 build/
