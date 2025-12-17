@@ -59,7 +59,7 @@ if (NODE_ENV === 'development') {
   app.use(morgan('combined'));
 }
 
-app.get('/health', (req, res) => {
+app.get('/health', (_req, res) => {
   res.json({
     status: 'ok',
     timestamp: new Date().toISOString(),

@@ -1,5 +1,6 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import type { StringValue } from 'ms';
 import prisma from '../utils/prisma';
 import { AppError } from '../middlewares/error-handler.middleware';
 
@@ -116,18 +117,22 @@ export class AuthService {
   private generateTokens(userId: string, email: string) {
     const payload = { sub: userId, email };
 
+    const accessTokenExpiry: StringValue = (process.env.JWT_EXPIRES_IN || '15m') as StringValue;
+    const refreshTokenExpiry: StringValue = (process.env.JWT_REFRESH_EXPIRES_IN ||
+      '7d') as StringValue;
+
     const accessToken = jwt.sign(payload, process.env.JWT_SECRET!, {
-      expiresIn: process.env.JWT_EXPIRES_IN || '15m',
+      expiresIn: accessTokenExpiry,
     });
 
     const refreshToken = jwt.sign(payload, process.env.JWT_REFRESH_SECRET!, {
-      expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || '7d',
+      expiresIn: refreshTokenExpiry,
     });
 
     return {
       accessToken,
       refreshToken,
-      expiresIn: process.env.JWT_EXPIRES_IN || '15m',
+      expiresIn: accessTokenExpiry,
     };
   }
 }
